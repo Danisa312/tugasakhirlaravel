@@ -11,7 +11,7 @@ class CreateKategoriPengeluaranTable extends Migration
         Schema::create('kategori_pengeluaran', function (Blueprint $table) {
             $table->id(); // otomatis primary key dan auto-increment
             $table->string('nama', 100)->unique();
-            $table->text('deskripsi')->nullable();
+            $table->text('de44444444444444444444444444444skripsi')->nullable();
             $table->timestamps(); // created_at dan updated_at
         });
     }

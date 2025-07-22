@@ -12,25 +12,33 @@ use Illuminate\Support\Facades\Http;
 
 class UserController extends Controller
 {
-    public function index(Request $request)
-    {
-        try {
-            $limit = (int) $request->get('limit', 10);
-            $page = (int) $request->get('page', 1);
+   public function index(Request $request)
+{
+    try {
+        $limit = (int) $request->get('limit', 10);
+        $page = (int) $request->get('page', 1);
+        $name = $request->name;
 
-            $users = User::paginate($limit, ['*'], 'page', $page);
+        $query = User::query();
 
-            return response()->json([
-                'success' => true,
-                'data' => $users->items(),
-                'totalData' => $users->total(),
-                'page' => $users->currentPage(),
-                'limit' => $users->perPage(),
-            ]);
-        } catch (Exception $e) {
-            return $this->errorResponse($e);
+        if ($name) {
+            $query->where('name', 'like', '%' . $name . '%');
         }
+
+        $users = $query->paginate($limit, ['*'], 'page', $page);
+
+        return response()->json([
+            'success' => true,
+            'data' => $users->items(),
+            'totalData' => $users->total(),
+            'page' => $users->currentPage(),
+            'limit' => $users->perPage(),
+        ]);
+    } catch (Exception $e) {
+        return $this->errorResponse($e);
     }
+}
+
 
     public function store(Request $request)
     {
@@ -83,49 +91,55 @@ class UserController extends Controller
         }
     }
 
-    public function update(Request $request, $id)
-    {
-        try {
-            $user = User::find($id);
+public function update(Request $request, $id)
+{
+    try {
+        $user = User::find($id);
 
-            if (!$user) {
-                return response()->json([
-                    'success' => true,
-                    'data' => null,
-                    'totalData' => 0,
-                    'page' => 1,
-                    'limit' => 1,
-                ]);
-            }
-
-            $request->validate([
-                'name' => 'required|max:100',
-                'email' => 'required|email|unique:users,email,' . $user->id,
-                'username' => 'required|max:50|unique:users,username,' . $user->id,
-            ]);
-
-            $user->update([
-                'name' => $request->name,
-                'email' => $request->email,
-                'username' => $request->username,
-                'status' => $request->status ?? true,
-                'role' => $request->role ?? $user->role
-            ]);
-
+        if (!$user) {
             return response()->json([
                 'success' => true,
-                'data' => $user,
-                'totalData' => 1,
+                'data' => null,
+                'totalData' => 0,
                 'page' => 1,
                 'limit' => 1,
             ]);
-        } catch (ValidationException $e) {
-            return $this->validationErrorResponse($e);
-        } catch (Exception $e) {
-            return $this->errorResponse($e);
         }
-    }
 
+        $request->validate([
+            'name' => 'required|max:100',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'username' => 'required|max:50|unique:users,username,' . $user->id,
+        ]);
+
+        $data = [
+            'name' => $request->name,
+            'email' => $request->email,
+            'username' => $request->username,
+            'status' => $request->status ?? true,
+            'role' => $request->role ?? $user->role
+        ];
+
+        // Hash password jika diisi
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->password);
+        }
+
+        $user->update($data);
+
+        return response()->json([
+            'success' => true,
+            'data' => $user,
+            'totalData' => 1,
+            'page' => 1,
+            'limit' => 1,
+        ]);
+    } catch (ValidationException $e) {
+        return $this->validationErrorResponse($e);
+    } catch (Exception $e) {
+        return $this->errorResponse($e);
+    }
+}
     public function destroy($id)
     {
         try {
